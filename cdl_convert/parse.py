@@ -469,10 +469,9 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     cdls = []
 
     with open(input_file, 'rb') as edl:
-        lines = edl.readlines()
+        lines = '\n'.join(edl.readlines())
 
     filename = os.path.basename(input_file).split('.')[0]
-
     def parse_cmx_clip(cmx_tuple):
         """Parses a three line cmx clip tuple."""
         if len(cmx_tuple) != 3:
@@ -500,17 +499,16 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
 
         return cc
 
-    for i, line in enumerate(lines):
-        if line != '\r\n':
-            # We only care about newlines when reading CMX, because
-            # we use those to kick off parsing the next take.
-            continue
-        if i + 3 <= len(lines):
-            cc = parse_cmx_clip(lines[i + 1:i + 4])
+    #This regex will avoid caring about extra stuff between the important lines we care about as long as the
+    #important lines we care about are in the right order
+    ccMatcher = re.compile(r'(\d*.+)(\n*.*)(\*FROM.+)(\n*.*)(\*ASC_SOP.+)(\n*.*)(\*ASC_SAT.+)(\n*.*)(\*SOURCE.+)')
+    clipEntries = ccMatcher.findall(lines)
+    for entry in clipEntries:
+        if entry[2] is not '' and entry[4] is not None and entry[6] is not None:
+            cc = parse_cmx_clip((entry[2],entry[4],entry[6]))
+            cdls.append(cc)
         else:
             continue
-
-        cdls.append(cc)
 
     ccc = collection.ColorCollection()
     ccc.file_in = input_file
