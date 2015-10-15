@@ -477,7 +477,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
         if len(cmx_tuple) != 3:
             print(cmx_tuple)
             return
-        title = cmx_tuple[0].split()[1]
+        title = cmx_tuple[0].split(': ')[1]
 
         sop = re.match(
             r'^\*ASC_SOP \(([\d\. -]+)\)\(([\d\. -]+)\)\(([\d\. -]+)\)',
@@ -501,14 +501,25 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
 
     #This regex will avoid caring about extra stuff between the important lines we care about as long as the
     #important lines we care about are in the right order
-    ccMatcher = re.compile(r'(\d*.+)(\n*.*)(\*FROM.+)(\n*.*)(\*ASC_SOP.+)(\n*.*)(\*ASC_SAT.+)(\n*.*)(\*SOURCE.+)')
+    ccMatcher = re.compile(r'(\d*.+)(\n*.*)(\*\ *FROM.+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)')
     clipEntries = ccMatcher.findall(lines)
     for entry in clipEntries:
-        if entry[2] is not '' and entry[4] is not None and entry[6] is not None:
-            cc = parse_cmx_clip((entry[2],entry[4],entry[6]))
+        clip = entry[2]
+        sop = None
+        sat = None
+        i=0
+        for group in entry:
+            if group == 'SOP':
+                sop = entry[i-1]
+            if group == 'SAT':
+                sat = entry[i-1]
+            i += 1
+        if clip is not None and sop is not None and sat is not None:
+            cc = parse_cmx_clip((clip, sop, sat))
             cdls.append(cc)
         else:
             continue
+
 
     ccc = collection.ColorCollection()
     ccc.file_in = input_file
