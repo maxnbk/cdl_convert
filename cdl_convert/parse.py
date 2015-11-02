@@ -74,7 +74,7 @@ from __future__ import absolute_import, print_function
 # Standard Imports
 
 from ast import literal_eval
-import os
+import os, sys
 import re
 from xml.etree import ElementTree
 
@@ -480,7 +480,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
         title = cmx_tuple[0].split(': ')[1]
 
         sop = re.match(
-            r'^\*ASC_SOP \(([\d\. -]+)\)\(([\d\. -]+)\)\(([\d\. -]+)\)',
+            r'^\*[\s]*?ASC_SOP \(([\d\. -]+)\)\(([\d\. -]+)\)\(([\d\. -]+)\)',
             cmx_tuple[1]
         )
         if not sop:
@@ -501,14 +501,20 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
 
     #This regex will avoid caring about extra stuff between the important lines we care about as long as the
     #important lines we care about are in the right order
-    ccMatcher = re.compile(r'(\d*.+)(\n*.*)(\*\ *FROM.+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)')
+    if len(re.findall(r'FROM', lines)) != (2 * len(re.findall(r'ASC', lines))):
+        sys.exit("Inequal amounts of CLIP, ASC, SAT lines - parsed values will almost assuredly be wrong - Exiting")
+
+    #ccMatcher = re.compile(r'(\d*.+)(\n*.*)(\*\ *FROM.+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)')
+    ccMatcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))')
     clipEntries = ccMatcher.findall(lines)
     for entry in clipEntries:
-        clip = entry[2]
+        clip = None
         sop = None
         sat = None
         i=0
         for group in entry:
+            if 'FROM' in group and clip is None:
+                clip = group
             if group == 'SOP':
                 sop = entry[i-1]
             if group == 'SAT':
