@@ -480,7 +480,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
         title = cmx_tuple[0].split(': ')[1]
 
         sop = re.match(
-            r'^\*[\s]*?ASC_SOP \(([\d\. -]+)\)\(([\d\. -]+)\)\(([\d\. -]+)\)',
+            r'^ASC_SOP \(([\d\. -]+)\)\(([\d\. -]+)\)\(([\d\. -]+)\)',
             cmx_tuple[1]
         )
         if not sop:
@@ -501,7 +501,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
 
     #This regex will avoid caring about extra stuff between the important lines we care about as long as the
     #important lines we care about are in the right order
-    if len(re.findall(r'FROM', lines)) != (2 * len(re.findall(r'ASC', lines))):
+    if (len(re.findall(r'FROM', lines)) * 2) != len(re.findall(r'ASC', lines)):
         sys.exit("Inequal amounts of CLIP, ASC, SAT lines - parsed values will almost assuredly be wrong - Exiting")
 
     #ccMatcher = re.compile(r'(\d*.+)(\n*.*)(\*\ *FROM.+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)')
