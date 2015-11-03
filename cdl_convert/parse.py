@@ -74,7 +74,8 @@ from __future__ import absolute_import, print_function
 # Standard Imports
 
 from ast import literal_eval
-import os, sys
+import os
+import sys
 import re
 from xml.etree import ElementTree
 
@@ -472,7 +473,9 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
         lines = '\n'.join(edl.readlines())
 
     filename = os.path.basename(input_file).split('.')[0]
+
     def parse_cmx_clip(cmx_tuple):
+
         """Parses a three line cmx clip tuple."""
         if len(cmx_tuple) != 3:
             print(cmx_tuple)
@@ -499,33 +502,34 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
 
         return cc
 
-    #This regex will avoid caring about extra stuff between the important lines we care about as long as the
-    #important lines we care about are in the right order
+    '''
+    This regex will avoid caring about extra stuff between
+    the important lines we care about as long as the important
+    lines we care about are in the right order
+    '''
     if (len(re.findall(r'FROM', lines)) * 2) != len(re.findall(r'ASC', lines)):
-        sys.exit("Inequal amounts of CLIP, ASC, SAT lines - parsed values will almost assuredly be wrong - Exiting")
+        sys.exit("Inequal amounts of CLIP, ASC, SAT lines - Exiting")
 
-    #ccMatcher = re.compile(r'(\d*.+)(\n*.*)(\*\ *FROM.+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)(\n*.*)(\*\ *ASC_(SOP|SAT).+)')
     ccMatcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))')
     clipEntries = ccMatcher.findall(lines)
     for entry in clipEntries:
         clip = None
         sop = None
         sat = None
-        i=0
+        i = 0
         for group in entry:
             if 'FROM' in group and clip is None:
                 clip = group
             if group == 'SOP':
-                sop = entry[i-1]
+                sop = entry[i - 1]
             if group == 'SAT':
-                sat = entry[i-1]
+                sat = entry[i - 1]
             i += 1
         if clip is not None and sop is not None and sat is not None:
-            cc = parse_cmx_clip((clip, sop, sat))
-            cdls.append(cc)
+            colorCorrect = parse_cmx_clip((clip, sop, sat))
+            cdls.append(colorCorrect)
         else:
             continue
-
 
     ccc = collection.ColorCollection()
     ccc.file_in = input_file
