@@ -502,17 +502,15 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
 
         return cc
 
-    '''
-    This regex will avoid caring about extra stuff between
+    '''This regex will avoid caring about extra stuff between
     the important lines we care about as long as the important
-    lines we care about are in the right order
-    '''
+    lines we care about are in the right order'''
     if (len(re.findall(r'FROM', lines)) * 2) != len(re.findall(r'ASC', lines)):
         sys.exit("Inequal amounts of CLIP, ASC, SAT lines - Exiting")
 
-    ccMatcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))')
-    clipEntries = ccMatcher.findall(lines)
-    for entry in clipEntries:
+    cc_matcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))')
+    clip_entries = cc_matcher.findall(lines)
+    for entry in clip_entries:
         clip = None
         sop = None
         sat = None
