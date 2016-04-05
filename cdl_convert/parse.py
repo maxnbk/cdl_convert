@@ -505,10 +505,10 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     '''This regex will avoid caring about extra stuff between
     the important lines we care about as long as the important
     lines we care about are in the right order'''
-    if (len(re.findall(r'FROM', lines)) * 2) != len(re.findall(r'ASC', lines)):
-        sys.exit("Inequal amounts of CLIP, ASC, SAT lines - Exiting")
+    if ( ( len(re.findall(r'FROM', lines)) + len(re.findall(r'LOC', lines)) ) * 2) != len(re.findall(r'ASC', lines)):
+        sys.exit("Inequal amounts of CLIP|LOC, ASC, SAT lines - Exiting")
 
-    cc_matcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*)))')
+    cc_matcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM|LOC.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM|LOC.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM|LOC.*)))')
     clip_entries = cc_matcher.findall(lines)
     for entry in clip_entries:
         clip = None
@@ -516,7 +516,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
         sat = None
         i = 0
         for group in entry:
-            if 'FROM' in group and clip is None:
+            if ('FROM' in group or 'LOC' in group) and clip is None:
                 clip = group
             if group == 'SOP':
                 sop = entry[i - 1]
