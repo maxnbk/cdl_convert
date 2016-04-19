@@ -508,7 +508,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     if ( ( len(re.findall(r'FROM', lines)) + len(re.findall(r'LOC', lines)) ) * 2) != len(re.findall(r'ASC', lines)):
         sys.exit("Inequal amounts of CLIP|LOC, ASC, SAT lines - Exiting")
 
-    cc_matcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM|LOC.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM|LOC.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM|LOC.*)))')
+    cc_matcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*|LOC.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*|LOC.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*|LOC.*)))')
     clip_entries = cc_matcher.findall(lines)
     for entry in clip_entries:
         clip = None
