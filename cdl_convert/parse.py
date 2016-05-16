@@ -81,7 +81,7 @@ from xml.etree import ElementTree
 
 # cdl_convert imports
 
-from . import collection, correction
+from . import config, collection, correction
 
 # ==============================================================================
 # EXPORTS
@@ -139,10 +139,13 @@ def parse_ale(input_file):  # pylint: disable=R0914
 
     cdls = []
 
-    with open(input_file, 'r') as edl:
+    with open(input_file, 'rU') as edl:
         lines = edl.readlines()
         for line in lines:
-            if line.startswith('Column'):
+            if not line.strip():
+                # Skip entirely blank lines
+                continue
+            elif line.startswith('Column'):
                 section['column'] = True
                 continue
             elif line.startswith('Data'):
@@ -248,7 +251,10 @@ def parse_cc(input_file):  # pylint: disable=R0912
     try:
         cc_id = root.attrib['id']
     except KeyError:
-        raise ValueError('No id found on ColorCorrection')
+        if config.HALT_ON_ERROR:
+            raise ValueError('No id found on ColorCorrection')
+        else:
+            cc_id = None
 
     cdl = correction.ColorCorrection(cc_id)
     if file_in:
@@ -469,8 +475,13 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     """
     cdls = []
 
+<<<<<<< HEAD
     with open(input_file, 'rb') as edl:
         lines = '\n'.join(edl.readlines())
+=======
+    with open(input_file, 'rU') as edl:
+        lines = edl.readlines()
+>>>>>>> v0.9.2
 
     filename = os.path.basename(input_file).split('.')[0]
 
@@ -592,7 +603,7 @@ def parse_flex(input_file):  # pylint: disable=R0912,R0914
 
     cdls = []
 
-    with open(input_file, 'r') as edl:
+    with open(input_file, 'rU') as edl:
         lines = edl.readlines()
 
         filename = os.path.basename(input_file).split('.')[0]
@@ -717,7 +728,7 @@ def parse_rnh_cdl(input_file):
 
     """
 
-    with open(input_file, 'r') as cdl_f:
+    with open(input_file, 'rU') as cdl_f:
         # We only need to read the first line
         line = cdl_f.readline()
         line = line.split()
