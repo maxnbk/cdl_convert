@@ -322,8 +322,7 @@ def parse_cc(input_file):  # pylint: disable=R0912
                 try:
                     cdl.id = '_'.join(desc_xml.text.split())
                 except ValueError, v:
-                    print("Description naming collided. Please fix cc's to have unique ids or descriptions")
-                    raise(v)
+                    raise(ValueError, "Description based naming collided. Please fix cc's to have unique ids or descriptions")
 
     if sop_xml is None and sat_xml is None:
         raise ValueError(
