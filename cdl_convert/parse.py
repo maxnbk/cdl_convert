@@ -319,11 +319,10 @@ def parse_cc(input_file):  # pylint: disable=R0912
     if cc_id is None:
         if config.MISSING_ID_FROM_DESC_IF_AVAILABLE:
             if desc_xml is not None:
-                suffix = str(len(cdl.members.keys())).zfill(3)
                 try:
-                    cdl.id = '_'.join(desc_xml.text.split()) + '_' + suffix
+                    cdl.id = '_'.join(desc_xml.text.split())
                 except ValueError, v:
-                    print("Description naming collisions even with attempt at unique suffixes. Fix CC id values.")
+                    print("Description naming collided. Please fix cc's to have unique ids or descriptions")
                     raise(v)
 
     if sop_xml is None and sat_xml is None:
