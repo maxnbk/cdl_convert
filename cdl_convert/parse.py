@@ -302,6 +302,7 @@ def parse_cc(input_file):  # pylint: disable=R0912
             )
         else:
             return found_element
+
     try:
         desc_xml = find_required(root, ['Description'])
     except ValueError:
@@ -318,7 +319,12 @@ def parse_cc(input_file):  # pylint: disable=R0912
     if cc_id is None:
         if config.MISSING_ID_FROM_DESC_IF_AVAILABLE:
             if desc_xml is not None:
-                cdl.id = desc_xml.text
+                suffix = str(len(cdl.members.keys())).zfill(3)
+                try:
+                    cdl.id = '_'.join(desc_xml.text.split()) + '_' + suffix
+                except ValueError, v:
+                    print("Description naming collisions even with attempt at unique suffixes. Fix CC id values.")
+                    raise(v)
 
     if sop_xml is None and sat_xml is None:
         raise ValueError(
