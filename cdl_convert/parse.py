@@ -302,7 +302,10 @@ def parse_cc(input_file):  # pylint: disable=R0912
             )
         else:
             return found_element
-
+    try:
+        desc_xml = find_required(root, ['Description'])
+    except ValueError:
+        desc_xml = None
     try:
         sop_xml = find_required(root, correction.SopNode.element_names)
     except ValueError:
@@ -311,6 +314,11 @@ def parse_cc(input_file):  # pylint: disable=R0912
         sat_xml = find_required(root, correction.SatNode.element_names)
     except ValueError:
         sat_xml = None
+
+    if cc_id is None:
+        if config.MISSING_ID_FROM_DESC_IF_AVAILABLE:
+            if desc_xml is not None:
+                cdl.id = desc_xml.text
 
     if sop_xml is None and sat_xml is None:
         raise ValueError(
@@ -475,13 +483,8 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     """
     cdls = []
 
-<<<<<<< HEAD
-    with open(input_file, 'rb') as edl:
-        lines = '\n'.join(edl.readlines())
-=======
     with open(input_file, 'rU') as edl:
         lines = edl.readlines()
->>>>>>> v0.9.2
 
     filename = os.path.basename(input_file).split('.')[0]
 
