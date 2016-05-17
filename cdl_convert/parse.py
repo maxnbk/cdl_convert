@@ -488,7 +488,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     cdls = []
 
     with open(input_file, 'rU') as edl:
-        lines = edl.readlines()
+        lines = '\n'.join(edl.readlines())
 
     filename = os.path.basename(input_file).split('.')[0]
 
