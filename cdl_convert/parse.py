@@ -489,6 +489,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
 
     with open(input_file, 'rU') as edl:
         lines = '\n'.join(edl.readlines())
+    lines = lines.replace('\n\n', '\n')
 
     filename = os.path.basename(input_file).split('.')[0]
 
@@ -520,13 +521,63 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
 
         return cc
 
+
+    '''
+    Trailing whitespace can be a sneaky devil in cleanup operations
+    '''
+    whitespace_cleaner = re.compile(r'([\s\S]*?)[\t ]*\n')
+    lines = whitespace_cleaner.sub(r'\1\n', lines)
+
+    '''
+    We'll try to pre-clean an EDL away from several of the standard types of aberrations between
+    the various EDL formatting types because no one cares to follow a standard.
+    Some EDL's have ASC_SOP lines split by a new-line and asterisk, so we're hoping to rescue those,
+    and remove other types of lines that are useless to us as well increase the possibility of hitting
+    a regex-malforming problem (like the word LOC appearing in a VFX note for example)
+    '''
+    def replace_newline(match):
+        if '\n' in match.group(0):
+            return (match.group(0).replace('\n', '')+'\n')
+        else:
+            return match.group(0)
+            
+    split_ascsop_finder = re.compile(r'(ASC_SOP[\s\S]*?)[ ]*?\([\s\S]*?\)[\s\S]*?\([\s\S]*?\)[\s\S]*?\([\s\S]*?\)')
+    lines = split_ascsop_finder.sub(replace_newline, lines)
+    lines = lines.replace('* ', '').replace('*', '')
+    lines = re.sub('\nSOURCE FILE:.*', '', lines)
+    lines = re.sub('\nSOURCE.*', '', lines)
+    lines = re.sub('\nREEL:.*', '', lines)
+    lines = re.sub('\n.*[=].*', '', lines)
+
+    '''
+    Some single-shot EDLs will have the clip name in the numeric clip field and no other indicator;
+    In these cases, the best we could do would be to use the filename,
+    which appears to be really hard to do without a complete refactor,
+    So instead we'll try to detect these circumstances and covert insert a FROM CLIP NAME
+    field which is the string after the clip number, which tends to mirror the filename
+    '''
+
+    def replace_clipname(match):
+        if 'FROM CLIP NAME:' not in match.group(0) and 'LOC:' not in match.group(0):
+            return '\n' + match.group(3) + '\n' + 'FROM CLIP NAME: ' + match.group(4) + match.group(5)
+        else:
+            return match.group(0)
+
+    clip_name_finder = re.compile(r'(\n)((\d*\s*(\S*)\s*.*)([\s\S]*?ASC))')
+    lines = clip_name_finder.sub(replace_clipname, lines)
+
+    '''
+    We sort of need to fail if we don't have any information; That is, if the number of
+    clip naming type entries does not correspond with the number of ASC type entries.
+    '''
+    declaration_matcher = re.compile(r'((FROM CLIP NAME:[\s\S]*?)|(LOC: [\s\S]*?))((?!ASC)[\s\S])*')
+    if len(declaration_matcher.findall(lines) * 2) != len(re.findall(r'ASC', lines)):
+        sys.exit("Inequal amounts of 'FROM CLIP NAME'|'LOC', 'ASC', 'SAT' lines - Exiting")
+
     '''This regex will avoid caring about extra stuff between
     the important lines we care about as long as the important
     lines we care about are in the right order'''
-    if ( ( len(re.findall(r'FROM', lines)) + len(re.findall(r'LOC', lines)) ) * 2) != len(re.findall(r'ASC', lines)):
-        sys.exit("Inequal amounts of CLIP|LOC, ASC, SAT lines - Exiting")
-
-    cc_matcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*|LOC.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*|LOC.*)))([\s\S]+?)(\*[\s]*?((ASC_(SOP|SAT).+)|(FROM.*|LOC.*)))')
+    cc_matcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(((ASC_(SOP|SAT).+)|(FROM CLIP NAME:.*[\s\S]*?)|(LOC: [\s\S]*?)(?!ASC)[\s\S]*))([\s\S]+?)(((ASC_(SOP|SAT).+)))([\s\S]+?)(((ASC_(SOP|SAT).+)))')
     clip_entries = cc_matcher.findall(lines)
     for entry in clip_entries:
         clip = None
