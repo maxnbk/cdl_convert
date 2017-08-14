@@ -562,12 +562,20 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
             clip_name = clip_namer.findall(block_lines[0])[0]
             block_line = 'FROM CLIP NAME: %s\n' % clip_name
             reordered_block.append(block_line)
-        for block_line in block_lines:
-            if 'ASC_SOP' in block_line:
-                reordered_block.append(block_line)
-        for block_line in block_lines:
-            if 'ASC_SAT' in block_line:
-                reordered_block.append(block_line)
+        if 'ASC_SOP' in block:
+            for block_line in block_lines:
+                if 'ASC_SOP' in block_line:
+                    reordered_block.append(block_line)
+        else:
+            asc_sop_default = 'ASC_SOP (1.0 1.0 1.0)(0.0 0.0 0.0)(1.0 1.0 1.0)'
+            reordered_block.append(asc_sop_default)
+        if 'ASC_SAT' in block:
+            for block_line in block_lines:
+                if 'ASC_SAT' in block_line:
+                    reordered_block.append(block_line)
+        else:
+            asc_sat_default = 'ASC_SAT 1.0'
+            reordered_block.append(asc_sat_default)
         for block_line in block_lines:
             if block_line not in reordered_block:
                 reordered_block.append(block_line)
