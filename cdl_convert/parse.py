@@ -527,6 +527,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     '''
     whitespace_cleaner = re.compile(r'([\s\S]*?)[\t ]*\n')
     lines = whitespace_cleaner.sub(r'\1\n', lines)
+    lines = lines + '\n'
 
     '''
     We'll try to pre-clean an EDL away from several of the standard types of aberrations between
@@ -543,28 +544,44 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
             
     split_ascsop_finder = re.compile(r'(ASC_SOP[\s\S]*?)[ ]*?\([\s\S]*?\)[\s\S]*?\([\s\S]*?\)[\s\S]*?\([\s\S]*?\)')
     lines = split_ascsop_finder.sub(replace_newline, lines)
+
+    edl_block_finder = re.compile(r'(?<=\n)(\d+?[ ][\s\S]*?)(?=(([\n]\d+?[ ])|(\Z)))')
+    edl_blocks = edl_block_finder.findall(lines)
+    new_edl_blocks = []
+    for block in edl_blocks:
+        block = block[0]
+        reordered_block = []
+        block_lines = block.split('\n')
+        reordered_block.append(block_lines[0])
+        if 'FROM CLIP NAME:' in block:
+            for block_line in block_lines:
+                if 'FROM CLIP NAME:' in block_line or 'LOC:' in block_line:
+                    reordered_block.append(block_line)
+        else:
+            clip_namer = re.compile(r'\d*\s*(\S*)(?=\s*)')
+            clip_name = clip_namer.findall(block_lines[0])[0]
+            block_line = 'FROM CLIP NAME: %s\n' % clip_name
+            reordered_block.append(block_line)
+        for block_line in block_lines:
+            if 'ASC_SOP' in block_line:
+                reordered_block.append(block_line)
+        for block_line in block_lines:
+            if 'ASC_SAT' in block_line:
+                reordered_block.append(block_line)
+        for block_line in block_lines:
+            if block_line not in reordered_block:
+                reordered_block.append(block_line)
+        new_block = '\n'.join(reordered_block)
+        new_edl_blocks.append(new_block)
+    lines = '\n'.join(new_edl_blocks)
+
     lines = lines.replace('* ', '').replace('*', '')
     lines = re.sub('\nSOURCE FILE:.*', '', lines)
     lines = re.sub('\nSOURCE.*', '', lines)
     lines = re.sub('\nREEL:.*', '', lines)
+    lines = re.sub('\nDescript:.*', '', lines)
     lines = re.sub('\n.*[=].*', '', lines)
 
-    '''
-    Some single-shot EDLs will have the clip name in the numeric clip field and no other indicator;
-    In these cases, the best we could do would be to use the filename,
-    which appears to be really hard to do without a complete refactor,
-    So instead we'll try to detect these circumstances and covert insert a FROM CLIP NAME
-    field which is the string after the clip number, which tends to mirror the filename
-    '''
-
-    def replace_clipname(match):
-        if 'FROM CLIP NAME:' not in match.group(0) and 'LOC:' not in match.group(0):
-            return '\n' + match.group(3) + '\n' + 'FROM CLIP NAME: ' + match.group(4) + match.group(5)
-        else:
-            return match.group(0)
-
-    clip_name_finder = re.compile(r'(\n)((\d*\s*(\S*)\s*.*)([\s\S]*?ASC))')
-    lines = clip_name_finder.sub(replace_clipname, lines)
 
     '''
     We sort of need to fail if we don't have any information; That is, if the number of
