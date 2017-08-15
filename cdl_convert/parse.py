@@ -553,7 +553,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
         reordered_block = []
         block_lines = block.split('\n')
         reordered_block.append(block_lines[0])
-        if 'FROM CLIP NAME:' in block:
+        if 'FROM CLIP NAME:' or 'LOC:' in block:
             for block_line in block_lines:
                 if 'FROM CLIP NAME:' in block_line or 'LOC:' in block_line:
                     reordered_block.append(block_line)
