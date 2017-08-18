@@ -488,6 +488,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     cdls = []
 
     with open(input_file, 'rU') as edl:
+
         lines = '\n'.join(edl.readlines())
     lines = lines.replace('\n\n', '\n')
 
@@ -602,7 +603,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     '''This regex will avoid caring about extra stuff between
     the important lines we care about as long as the important
     lines we care about are in the right order'''
-    cc_matcher = re.compile(r'(\n+\d+.*)([\s\S]+?)(((ASC_(SOP|SAT).+)|(FROM CLIP NAME:.*[\s\S]*?)|(LOC: [\s\S]*?)(?!ASC)[\s\S]*))([\s\S]+?)(((ASC_(SOP|SAT).+)))([\s\S]+?)(((ASC_(SOP|SAT).+)))')
+    cc_matcher = re.compile(r'((\A)|(\n+\d+.*))([\s\S]+?)(((FROM CLIP NAME:.*[\s\S]*?)|(LOC:.*[\s\S]*?)))((?!ASC)[\s\S]*?)(((ASC_(SOP|SAT).+)))([\s\S]+?)(((ASC_(SOP|SAT).+)))')
     clip_entries = cc_matcher.findall(lines)
     for entry in clip_entries:
         clip = None
