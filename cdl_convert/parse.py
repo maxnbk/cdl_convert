@@ -542,14 +542,30 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
             return (match.group(0).replace('\n', '')+'\n')
         else:
             return match.group(0)
-            
+    
     split_ascsop_finder = re.compile(r'(ASC_SOP[\s\S]*?)[ ]*?\([\s\S]*?\)[\s\S]*?\([\s\S]*?\)[\s\S]*?\([\s\S]*?\)')
     lines = split_ascsop_finder.sub(replace_newline, lines)
-
+    
+    '''
+    An empty ASC_SOP or ASC_SAT line doesnt parse well and should be replaced with a null op so that
+    we retain the event even if the data is useless
+    '''
+    print(lines)
+    print("cleaning")
+    null_ascsop = 'ASC_SOP (1.0000 1.0000 1.0000)(1.0000 1.0000 1.0000)(1.0000 1.0000 1.0000)\n'
+    null_ascsat = 'ASC_SAT 1\n'
+    null_ascsop_finder = re.compile(r'ASC_SOP *?\n')
+    null_ascsat_finder = re.compile(r'ASC_SAT *?\n')
+    lines = null_ascsop_finder.sub(null_ascsop , lines)
+    lines = null_ascsat_finder.sub(null_ascsat , lines)
+        
+    print("cleaned")
+    print(lines)
     edl_block_finder = re.compile(r'(?<=\n)(\d+?[ ][\s\S]*?)(?=(([\n]\d+?[ ])|(\Z)))')
     edl_blocks = edl_block_finder.findall(lines)
     new_edl_blocks = []
     for block in edl_blocks:
+        print(block)
         block = block[0]
         reordered_block = []
         block_lines = block.split('\n')
