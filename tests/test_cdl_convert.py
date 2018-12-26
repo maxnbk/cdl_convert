@@ -163,6 +163,17 @@ class TestSanitize(unittest.TestCase):
 
     #==========================================================================
 
+    def testDashesOkay(self):
+        """Tests that dashes pass through intact"""
+        result = _sanitize('a-b-c')
+
+        self.assertEqual(
+            'a-b-c',
+            result
+        )
+
+    #==========================================================================
+
     def testLeadingPeriodRemove(self):
         """Tests that leading periods are removed"""
         result = _sanitize('.abc')
@@ -445,9 +456,7 @@ class TestParseArgs(unittest.TestCase):
 
     def testHaltOnError(self):
         """Tests that providing the --halt flag triggers HALT_ON_ERROR"""
-        self.assertFalse(
-            cdl_convert.config.HALT_ON_ERROR
-        )
+        cdl_convert.config.HALT_ON_ERROR = False
 
         sys.argv = ['scriptname', 'inputFile', '--halt']
 
