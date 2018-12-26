@@ -486,6 +486,8 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     for track in edl.tracks:
         for clip in track.data['children']:
             title = clip.name
+            if clip.markers:
+                title = clip.markers[0].name
             cc = correction.ColorCorrection(title, filename)
             try:
                 cdl = clip.metadata['cdl']
