@@ -481,7 +481,7 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
             "https://github.com/PixarAnimationStudios/OpenTimelineIO"
         )
     cdls = []
-    edl = otio.adapters.read_from_file(input_file)
+    edl = otio.adapters.read_from_file(input_file, ignore_timecode_mismatch=True)
     filename = os.path.basename(input_file).split('.')[0]
     for track in edl.tracks:
         for clip in track.data['children']:
