@@ -112,13 +112,14 @@ def write_cc(cdl):
 # ==============================================================================
 
 
-def write_ccc(cdl):
+def write_ccc(cdl, encode='UTF-8'):
     """Writes the ColorCollection to a .ccc file"""
     if not isinstance(cdl, ColorCollection):
         cdl = _temp_container(cdl)
 
     collection_type = cdl.type
     cdl.set_to_ccc()
+    cdl.set_encoding(encode)
     with open(cdl.file_out, 'wb') as cdl_f:
         cdl_f.write(cdl.xml_root)
     cdl.type = collection_type

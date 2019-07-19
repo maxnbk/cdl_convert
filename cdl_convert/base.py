@@ -327,6 +327,7 @@ class AscXMLBase(object):
     """
     def __init__(self):
         super(AscXMLBase, self).__init__()
+        self._encouding = 'UTF-8'
 
     # Properties ==============================================================
 
@@ -346,15 +347,23 @@ class AscXMLBase(object):
     @property
     def xml_root(self):
         """A nicely formatted XML string with a root element ready to write"""
-        xml_string = ElementTree.tostring(self.element, 'UTF-8')
+        xml_string = ElementTree.tostring(self.element, self.xml_encouding)
         dom_xml = minidom.parseString(xml_string)
-        dom_string = dom_xml.toprettyxml(indent="    ", encoding='UTF-8')
+        dom_string = dom_xml.toprettyxml(indent="    ", encoding=self.xml_encouding)
         # Fix for ugly dom formatting prior to 2.7, taken from:
         # http://stackoverflow.com/questions/749796/pretty-printing-xml-in-python
         if sys.version_info[0] < 3 and sys.version_info[1] < 7:  # pragma: no cover pylint: disable=E0012
             text_re = re.compile(r'>\n\s+([^<>\s].*?)\n\s+</', re.DOTALL)
             dom_string = text_re.sub(r'>\g<1></', dom_string)
         return dom_string
+
+    def set_encoding(self, encouding=None):
+        self._encouding = encouding
+        return self._encouding
+
+    @property
+    def xml_encouding(self):
+        return self._encouding
 
     # Public Methods ==========================================================
 
