@@ -104,8 +104,9 @@ def _temp_container(cdl):
 # ==============================================================================
 
 
-def write_cc(cdl):
+def write_cc(cdl, encode='UTF-8'):
     """Writes the ColorCorrection to a .cc file"""
+    cdl.set_encoding(encode)
     with open(cdl.file_out, 'wb') as cdl_f:
         cdl_f.write(cdl.xml_root)
 
@@ -127,13 +128,14 @@ def write_ccc(cdl, encode='UTF-8'):
 # ==============================================================================
 
 
-def write_cdl(cdl):
+def write_cdl(cdl, encode='UTF-8'):
     """Writes the ColorCollection to a .cdl file"""
     if not isinstance(cdl, ColorCollection):
         cdl = _temp_container(cdl)
 
     collection_type = cdl.type
     cdl.set_to_cdl()
+    cdl.set_encoding(encode)
     with open(cdl.file_out, 'wb') as cdl_f:
         cdl_f.write(cdl.xml_root)
     cdl.type = collection_type
