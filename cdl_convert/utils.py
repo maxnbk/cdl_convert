@@ -173,7 +173,7 @@ def to_decimal(value, name='Value'):
     elif type(value) is Decimal:
         return value
     elif type(value) is str:
-        if '.' not in value:
+        if '.' not in value and 'e' not in value:
             value = value.strip()
             value += '.0'
 
