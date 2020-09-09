@@ -75,6 +75,7 @@ from __future__ import absolute_import, print_function
 
 from ast import literal_eval
 import os
+import sys
 import re
 from xml.etree import ElementTree
 
@@ -472,6 +473,112 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
     *ASC_SAT 0.773000
 
     """
+
+    def sanitize_edl(lines, prefer_name_as='clip'):
+
+        '''
+        Trailing whitespace can be a sneaky problem in future cleanup operations
+        '''
+        whitespace_cleaner = re.compile(r'([\s\S]*?)[\t ]*\n')
+        lines = whitespace_cleaner.sub(r'\1\n', lines)
+        lines = lines + '\n' # add EOF line
+
+        '''
+        We'll try to pre-clean an EDL away from several of the standard types of
+        aberrations between the various EDL formatting types because no one cares
+        to follow a standard. Some EDL's have ASP_SOP lines split by a newline and
+        asterisk, so we're hoping to rescue those, and remove other types of lines
+        that are useless to us as well, to avoid as many regex-malforming oddities
+        as possible, like the word LOC appearing in VFX note for example.
+        '''
+        def replace_newline(match):
+            if '\n' in match.group(0):
+                return (match.group(0).replace('\n', '')+'\n')
+            else:
+                return match.group(0)
+
+        split_ascsop_finder = re.compile(r'(ASC_SOP[\s\S]*?)[ ]*?\([\s\S]*?\)[\s\S]*?\([\s\S]*?\)[\s\S]*?\([\s\S]*?\)')
+        lines = split_ascsop_finder.sub(replace_newline, lines)
+
+        '''
+        An empty ASC_SOP or ASC_SAT line doesnt parse well and should be replaced
+        with a null op so that we retain the event even if the data is useless
+        '''
+        null_ascsop = 'ASC_SOP (1.0000 1.0000 1.0000)(1.0000 1.0000 1.0000)(1.0000 1.0000 1.0000)\n'
+        null_ascsat = 'ASC_SAT 1\n'
+        null_ascsop_finder = re.compile(r'ASC_SOP *?\n')
+        null_ascsat_finder = re.compile(r'ASC_SAT *?\n')
+        lines = null_ascsop_finder.sub(null_ascsop , lines)
+        lines = null_ascsat_finder.sub(null_ascsat , lines)
+
+        edl_block_finder = re.compile(r'(?<=\n)(\d+?[ ][\s\S]*?)(?=(([\n]\d+?[ ])|(\Z)))')
+        edl_blocks = edl_block_finder.findall(lines)
+
+        if prefer_name_as == 'clip':
+            name_field = 'FROM CLIP NAME:'
+        elif prefer_name_as == 'loc':
+            name_field = 'LOC:'
+        elif prefer_name_as == 'id':
+            name_field = None
+
+        # An EDL block detector and reorderer, with clip naming hacks
+        new_edl_blocks = []
+        for block in edl_blocks:
+            block = block[0]
+            reordered_block = []
+            block_lines = block.split('\n')
+            edl_clip_event_id = block_lines[0]
+            reordered_block.append(edl_clip_event_id)
+            block_lines = block_lines[1:]
+            if name_field:
+                for block_line in block_lines:
+                    if name_field in block_line:
+                        if prefer_name_as == 'clip':
+                            reordered_block.append(block_line)
+                        else:
+                            clip_namer = re.compile('.*:.*[ ](.*)')
+                            clip_name = clip_namer.findall(block_line)[0]
+                            block_line = '* FROM CLIP NAME: %s\n' % clip_name
+                            reordered_block.append(block_line)
+            # For blocks with no clip/loc name, the EDL Event ID text becomes the clip name
+            if len(reordered_block) == 1:
+                clip_namer = re.compile(r'\d*\s*(\S*)(?=\s*)')
+                clip_name = clip_namer.findall(edl_clip_event_id)[0]
+                block_line = '* FROM CLIP NAME: %s\n' % clip_name
+                reordered_block.append(block_line)
+            if 'ASC_SOP' in block:
+                for block_line in block_lines:
+                    if 'ASC_SOP' in block_line:
+                        reordered_block.append(block_line)
+            else:
+                asc_sop_default = 'ASC_SOP (1.0 1.0 1.0)(0.0 0.0 0.0)(1.0 1.0 1.0)'
+                reordered_block.append(asc_sop_default)
+            if 'ASC_SAT' in block:
+                for block_line in block_lines:
+                    if 'ASC_SAT' in block_line:
+                        reordered_block.append(block_line)
+            else:
+                asc_sat_default = 'ASC_SAT 1.0'
+                reordered_block.append(asc_sat_default)
+            for block_line in block_lines:
+                if block_line not in reordered_block:
+                    if 'LOC:' not in block_line and 'FROM CLIP NAME:' not in block_line:
+                        reordered_block.append(block_line)
+            new_block = '\n'.join(reordered_block)
+            new_edl_blocks.append(new_block)
+        lines = '\n'.join(new_edl_blocks)
+
+        '''
+        We sort of need to fail if we don't have any information; That is, if the number of
+        clip naming type entries does not correspond with the number of ASC type entries.
+        '''
+        declaration_matcher = re.compile(r'((FROM CLIP NAME:[\s\S]*?)|(LOC: [\s\S]*?))((?!ASC)[\s\S])*')
+        if len(declaration_matcher.findall(lines) * 2) != len(re.findall(r'ASC', lines)):
+            #print(lines)
+            sys.exit("Inequal amounts of 'FROM CLIP NAME'|'LOC', 'ASC', 'SAT' lines - Exiting")
+
+        return lines
+
     try:
         import opentimelineio as otio
     except ImportError:
@@ -481,10 +588,25 @@ def parse_cmx(input_file):  # pylint: disable=R0912,R0914
             "https://github.com/PixarAnimationStudios/OpenTimelineIO"
         )
     cdls = []
-    edl = otio.adapters.read_from_file(input_file, ignore_timecode_mismatch=True)
+
+    prefer_name_as = 'clip'
+    if 'CDL_CONVERT_PREFER_NAME_AS' in os.environ:
+        prefer_name_as = os.environ['CDL_CONVERT_PREFER_NAME_AS']
+    if prefer_name_as not in ['clip', 'loc', 'id']:
+        print('WARN: Valid name preferences in CDL_CONVERT_PREFER_NAME_AS are clip, loc, id')
+        prefer_name_as = 'clip'
+    print('preferring names in:', prefer_name_as)
+
+    with open(input_file, 'rU') as edl_file:
+        edl_lines = '\n'.join(edl_file.readlines())
+    edl_lines = edl_lines.replace('\n\n', '\n')
+    edl_lines = sanitize_edl(edl_lines, prefer_name_as=prefer_name_as)
+
+    edl = otio.adapters.from_name('cmx_3600').read_from_string(edl_lines, ignore_timecode_mismatch=True)
+
     filename = os.path.basename(input_file).split('.')[0]
     for track in edl.tracks:
-        for clip in track.data['children']:
+        for clip in track.each_clip():
             title = clip.name
             if clip.markers:
                 title = clip.markers[0].name

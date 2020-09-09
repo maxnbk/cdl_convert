@@ -781,6 +781,7 @@ class SopNode(ColorNodeBase):
                 raised if value given is negative.
 
         """
+        from opentimelineio._otio import AnyVector as AnyVector
         if type(value) in [Decimal, float, int, str]:
             try:
                 value = self._check_single_value(value, name, negative_allow)
@@ -788,7 +789,7 @@ class SopNode(ColorNodeBase):
                 raise
             else:
                 set_value = [value] * 3
-        elif type(value) in [list, tuple]:
+        elif type(value) in [list, tuple, AnyVector]:
             try:
                 value = self._check_rgb_values(value, name, negative_allow)
             except (TypeError, ValueError):
